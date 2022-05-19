@@ -2,82 +2,139 @@
     solve.py - checks an unfinished sudoku and solves it in case there is a solution
 '''
 
-from tkinter.tix import CheckList
-from typing import List
+import time
 
-def solve(board: list) -> None:
-    # 1 - create a list of list to mark the mutable cells 
-    checkBoard = createCheckBoard(board)
+isMutable = None 
 
-    # 2 -
-    currRow, currCol = 0, 0
-    currValue = 1 
-    while not (currRow == 9 and currCol == 9 and solved(board)): 
-        if not checkBoard[currRow][currCol]:
-            if currValue <= 9:
-                board[currRow][currCol] = currValue 
-                valueFits = rowAndLineOk(currRow,currCol, board)
-        else:
-            if currRow < 8:
-                currRow += 1
-            elif currCol < 8:
-                currCol += 1    
+def solve(board: list, row: int, col: int) -> bool:
+    """ run until condition is fulfilled by recursion 
     
+    arguments
+    ---------
+    board list
+        current state of the board
+    row: int
+        current row
+    col: int
+        current column
     
-    # Final stel
-    printSolution(board)
+    """
     
-def solved(board: list) -> bool:
+    if row == 8 and col == 8:
+        # condition is fullfiled
+        printSolution(board)
+        return True 
+    
+    if col == 9:
+        # jump to start of next line
+        row +=1
+        col = 0
+
+    if not isMutable[row][col]:
+        # filled on the origional board
+        return solve(board,row,col+1)
+    
+    for i in range (1,10):
+        # try out all possible numbers
+        if solved(board,row,col,i):
+            board[row][col] = i
+            if solve(board,row,col+1):
+                return True
+        board[row][col] = 0
+    return False
+    
+def solved(board: list, row: int, col: int, num: int) -> bool:
+    ''' Returns True if the numer does not exist in the same row, column or the block
+    
+    arguments
+    ---------
+    board: list
+        current state of the board
+    row: int
+        current rowNo
+    col: int
+        current colNo
+    num: int
+        number to check a solution
+    
     '''
-        Returns True if the last field has a valid value
-    '''
-    return (board[8][8] > 0) and (rowAndLineOk(8,8,board))
+    
+    for i in range(9):
+        if board[i][col] == num and row != i:
+            return False
+        if board[row][i] == num and col != i:
+            return False
+    
+    startRow = row - row % 3
+    startCol = col - col % 3
+    for rowNo in range (3):
+        for colNo in range(3):
+            if board[rowNo+startRow][colNo+startCol] ==  num and rowNo != row and colNo != col:
+                return False
+    
+    return True
+    
+def createMutableCellIndicatorBoard(board: list) -> list:
+    ''' According to the original board all mutable cells will be marked as True 
+    
+    arguments
+    ---------
+    board: list
+        the original sudoku board
         
-
-def rowAndLineOk(xPos: int,yPos: int,board: list) -> bool:
-    rowAndLineOk = True
-    #print(f'x: {xPos} - y: {yPos}')
-    for cell in range(9):
-        if (cell != yPos and board[xPos][cell] == board[xPos][yPos]) or (cell != xPos and board[cell][yPos] == board[xPos][yPos]):
-            #print(f'value: {board[xPos][yPos]} - row: {board[xPos][cell]} - column: {board[cell][yPos]}')
-            rowAndLineOk = False
-    return rowAndLineOk
+    '''
     
-def createCheckBoard(board: list) -> List:
-    '''
-        According to the argument board all mutable cells will be marked as False 
-    '''
-    checkBoard=[[True if i > 0 else False for i in innerList ] for innerList in board]
-    return checkBoard
+    return [[False if i > 0 else True for i in innerList ] for innerList in board]
     
-def printSolution(sudokuBoard: list) -> None:
+def printSolution(board: list) -> None:
+    ''' Prints a solution of the sudoku board 
+    
+    arguments
+    ---------
+    board: list
+        list to print
+    
     '''
-        Prints a solution of the sudoku board
-    '''
+    
     print("Please, see one solution for the sudoku below!")
     print()
     # print each value and divider
-    for row in range(len(sudokuBoard)):
-        for column in range(len(sudokuBoard)):
+    for row in range(len(board)):
+        for column in range(len(board)):
             if column == 2 or column == 5: 
-                print(f' {sudokuBoard[row][column]} |',end =" ")
+                print(f' {board[row][column]} |',end =" ")
             else:
-                print(f' {sudokuBoard[row][column]}',end =" ")
+                print(f' {board[row][column]}',end =" ")
         print()
         if row == 2 or row == 5:
             print("- - - - - - - - - - - - - - - -")
     print()
+    
         
 board = [
-        [0,7,0,0,0,2,0,0,0],
-        [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,3,0,4,2],
-        [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0],
-        [0,0,0,5,0,0,0,0,0],
-        [0,7,0,0,0,0,0,0,1]
+        [0,2,0,3,5,0,0,8,4],
+        [0,0,0,4,6,0,0,5,7],
+        [0,0,0,2,0,7,0,1,0],
+        [0,0,5,0,4,0,8,0,2],
+        [0,6,9,0,2,8,0,0,0],
+        [0,0,8,0,0,0,1,0,6],
+        [7,3,0,8,0,5,4,2,0],
+        [9,0,0,7,3,0,0,6,1],
+        [0,5,0,0,9,2,0,0,8]
         ]
 
-solve(board)
+print('###Start###')
+print()
+
+startTime = time.time()
+isMutable = createMutableCellIndicatorBoard(board)
+
+if not solve(board,0,0):
+    print("There is no solution!")
+
+endTime = time.time()
+duration = endTime - startTime
+print(f'The calculation run {duration} seconds')
+
+print()
+print('###END###')
